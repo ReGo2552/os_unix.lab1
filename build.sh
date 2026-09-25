@@ -24,7 +24,6 @@ if [ ! -f "$src" ] || [ ! -r "$src" ]; then
 	exit "$E_NOFILE"
 fi
 
-src_dir=$(dirname "$src")
 src_base=$(basename "$src")
 
 case "$src_base" in
@@ -37,12 +36,20 @@ case "$src_base" in
 	;;
 esac
 
-output_name=$(awk '
-    match($0, /Output:[ \t]*[^ \t*\/]+/) {
-        s = substr($0, RSTART, RLENGTH)
-        sub(/^Output:[ \t]*/, "", s)
-        print s
-        exit
+output_name=$(awk -v kind="$kind" '
+    {
+        if (kind == "tex") {
+            if (!match($0, /%/)) next
+        } else {
+            if (!match($0, /\/\/|\/\*/)) next
+        }
+        comment = substr($0, RSTART)
+        if (match(comment, /Output:[ \t]*[^ \t*\/]+/)) {
+            s = substr(comment, RSTART, RLENGTH)
+            sub(/^Output:[ \t]*/, "", s)
+            print s
+            exit
+        }
     }
 ' "$src")
 
@@ -79,4 +86,4 @@ if ! build || [ ! -f "$tmp_dir/$output_name" ]; then
 	exit "$E_BUILD"
 fi
 
-cp "$tmp_dir/$output_name" "$src_dir/$output_name"
+cp "$tmp_dir/$output_name" "./$output_name"
